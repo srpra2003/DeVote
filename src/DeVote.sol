@@ -114,12 +114,14 @@ contract DeVote is Ownable {
         emit NewCandidateAdded(newCandid.id, _cName, _cSlogan);
     }
 
-    function voteCandidate(bytes32[] memory _proof, bytes32 voterRightHash, uint256 candidIdToVote)
-        public
-        ValidCadidateId(candidIdToVote)
-        returns (bool)
-    {
-        if (!MerkleProof.verify(_proof, merkleRoot, voterRightHash)) {
+    function voteCandidate(
+        bytes32[] memory _proof,
+        bytes32 voterRightHash,
+        uint256 candidIdToVote
+    ) public ValidCadidateId(candidIdToVote) returns (bool) {
+        
+        bytes32 leaf = keccak256(bytes.concat(abi.encode(keccak256(abi.encode(msg.sender,voterRightHash)))));
+        if (!MerkleProof.verify(_proof, merkleRoot, leaf)) {
             revert InvalidVoterRight(msg.sender);
         }
         if (hasVoterVoted[voterRightHash]) {
