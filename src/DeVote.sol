@@ -104,9 +104,6 @@ contract DeVote is Ownable {
         if (votingStarted) {
             revert VotingAlreadyStarted();
         }
-        if (votingFinished) {   
-            revert VotingFinished();
-        }
 
         bytes32 sloganHash = keccak256(abi.encode(_cSlogan));
         if (isCandidateAdded[sloganHash]) {
@@ -169,7 +166,7 @@ contract DeVote is Ownable {
         if(!votingStarted) {
             return -1;   // voting has not started yet
         }
-        else if(votingFinished || int256(block.timestamp) - int256(votingStartTime) >= int256(votingPeriod)) {
+        else if(votingFinished || (block.timestamp) - (votingStartTime) >= (votingPeriod)) {
             return 0;    //voting is finished
         }
         else{
