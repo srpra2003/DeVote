@@ -21,7 +21,6 @@ DeVote is a decentralized voting system built on Ethereum using Solidity smart c
 
 ## Documentation
 
-- Smart Contract: [DeVote.sol](src/DeVote.sol)
 - Solidity: Version 0.8.26
 - Merkle Tree Library: OpenZeppelin MerkleProof
 - Access Control: OpenZeppelin Ownable
