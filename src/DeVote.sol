@@ -116,7 +116,7 @@ contract DeVote is Ownable {
 
     function voteCandidate(
         bytes32[] memory _proof,
-        bytes32 voterRightHash,
+        bytes32 voterRightHash,   //hash of voter's adhaar number
         uint256 candidIdToVote
     ) public ValidCadidateId(candidIdToVote) returns (bool) {
         
@@ -144,5 +144,21 @@ contract DeVote is Ownable {
 
     function getListOfCandidates() public view returns (Candidate[] memory) {
         return candidates;
+    }
+
+    function getMerkleRoot() public view returns(bytes32) {
+        return merkleRoot;
+    }
+
+    function getVotingStatus() public view returns(int8) {
+        if(votingStartTime == 0) {
+            return -1;   // voting has not started yet
+        }
+        else if(votingFinished) {
+            return 0;    //voting is finished
+        }
+        else{
+            return 1; // voting is current ongoing
+        }
     }
 }
