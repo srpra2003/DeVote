@@ -1,3 +1,31 @@
+# DeVote - Decentralized Voting Platform
+
+DeVote is a decentralized voting system built on Ethereum using Solidity smart contracts. It provides a secure and transparent platform for elections, with voter verification using Merkle Trees and hashed Aadhaar numbers.
+
+## Smart Contract Features
+
+- **Candidate Management**: Candidates are added with unique slogans, preventing duplication.
+- **Voter Verification**: Ensures only verified voters can participate in the election using Merkle Proofs.
+- **Voting Lifecycle**: Voting is allowed for a limited time and results are determined based on the vote count.
+- **Tamper-Proof Voting**: Once voting starts, the results cannot be tampered with or altered.
+- **Secure Voting**: Each vote is securely stored on the blockchain.
+
+## Functions Overview
+
+- **addCandidate**: Add a new candidate by providing a name and unique slogan.
+- **startVoting**: Start the election.
+- **voteCandidate**: Cast a vote for a verified candidate.
+- **endVoting**: End the election and declare the winner.
+- **getCandidInformation**: Retrieve candidate details.
+- **getVotingStatus**: Check the current voting status.
+
+## Documentation
+
+- Smart Contract: [DeVote.sol](contracts/DeVote.sol)
+- Solidity: Version 0.8.26
+- Merkle Tree Library: OpenZeppelin MerkleProof
+- Access Control: OpenZeppelin Ownable
+
 ## Foundry
 
 **Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
