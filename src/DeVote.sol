@@ -44,7 +44,7 @@ contract DeVote is Ownable {
     modifier VotingOpen() {
         if (votingStartTime == 0) {
             revert VotingNotStarted();
-        } else if (votingFinished) {
+        } else if (votingFinished || block.timestamp - votingStartTime >= votingPeriod) {
             revert VotingFinished();
         }
         _;
@@ -71,7 +71,10 @@ contract DeVote is Ownable {
         votingStartTime = block.timestamp;
     }
 
-    function endVoting() public VotingOpen {
+    function endVoting() public {
+        if (votingStartTime == 0) {
+            revert VotingNotStarted();
+        }
         if (block.timestamp - votingStartTime < votingPeriod) {
             revert VotingPeriodIsNotFinished();
         }
@@ -94,7 +97,7 @@ contract DeVote is Ownable {
     }
 
     function addCandidate(string memory _cName, string memory _cSlogan) public onlyOwner {
-        if (votingFinished) {
+        if (votingFinished || block.timestamp - votingStartTime >= votingPeriod) {   // reason being that it is possible that voting is finished by time but admin has not yet called the endVoting function
             revert VotingFinished();
         }
         if (votingStartTime != 0) {
@@ -114,11 +117,18 @@ contract DeVote is Ownable {
         emit NewCandidateAdded(newCandid.id, _cName, _cSlogan);
     }
 
+    /**
+     * 
+     * @param _proof proof of the voter's right
+     * @param voterRightHash hash of the voter's adhar card number mind that it is calculated as follow
+     *                       voterROghtHash = keccak256("123456789012") --> here adahar number given is in string format not uint256 digits
+     * @param candidIdToVote whom voter wants to vote
+     */
     function voteCandidate(
         bytes32[] memory _proof,
         bytes32 voterRightHash,   //hash of voter's adhaar number
         uint256 candidIdToVote
-    ) public ValidCadidateId(candidIdToVote) returns (bool) {
+    ) public ValidCadidateId(candidIdToVote) VotingOpen returns (bool) {
         
         bytes32 leaf = keccak256(bytes.concat(abi.encode(keccak256(abi.encode(msg.sender,voterRightHash)))));
         if (!MerkleProof.verify(_proof, merkleRoot, leaf)) {
@@ -154,7 +164,7 @@ contract DeVote is Ownable {
         if(votingStartTime == 0) {
             return -1;   // voting has not started yet
         }
-        else if(votingFinished) {
+        else if(votingFinished || block.timestamp - votingStartTime >= votingPeriod) {
             return 0;    //voting is finished
         }
         else{

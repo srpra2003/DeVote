@@ -84,7 +84,7 @@ contract TestDeVote is Test {
 
     }
 
-    function testAdminCanNotAddCandidateOnceVotingIsStarted() public {
+    function testAdminCanNotAddCandidateOnceVotingIsStartedOrEnded() public {
 
         vm.startPrank(admin);
         deVote.addCandidate("NarendraModi","BJP");
@@ -95,9 +95,48 @@ contract TestDeVote is Test {
 
         vm.expectRevert(DeVote.VotingAlreadyStarted.selector);
         deVote.addCandidate("Mamta Didi", "TMC");
+        vm.stopPrank();
 
+        string memory result = vm.readFile(string.concat(vm.projectRoot(),"/script/target/output.json"));
+        address voter = result.readAddress("[0].inputs[0]");
+        bytes32 voterRightHash = keccak256("650852956851");   // which will be calculated by the user on frontend
+        bytes32[] memory voterProof = result.readBytes32Array("[0].proof");
+        vm.startPrank(voter);
+        deVote.voteCandidate(voterProof,voterRightHash,0); // 0 is a candidate id of narendra modi :)
+        vm.stopPrank();
 
+        vm.warp(block.timestamp+3 days);
+        vm.roll(block.number+1);
+
+        vm.startPrank(admin);
+        deVote.endVoting();
+
+        vm.expectRevert(DeVote.VotingFinished.selector);
+        deVote.addCandidate("Mamta Didi", "TMC");
         vm.stopPrank();
 
     }
+
+    function testInValidVoterCannotVote() public {
+        vm.startPrank(admin);
+        deVote.addCandidate("NarendraModi","BJP");
+        deVote.addCandidate("RahulGandhi","National Congress");
+        deVote.addCandidate("Arvind Kejrival","AAP");
+
+        deVote.startVoting();
+        vm.stopPrank();
+
+        string memory result = vm.readFile(string.concat(vm.projectRoot(),"/script/target/output.json"));
+        address fakevoter = result.readAddress("[0].inputs[0]");
+        bytes32 fakevoterRightHash = keccak256(abi.encode(345667892345));
+        bytes32[] memory voterProof = result.readBytes32Array("[0].proof");
+        
+        vm.startPrank(fakevoter);
+        vm.expectRevert(abi.encodeWithSelector(DeVote.InvalidVoterRight.selector,fakevoter));
+        deVote.voteCandidate(voterProof,fakevoterRightHash,0); // 0 is a candidate id of narendra modi :)
+        vm.stopPrank();
+    }
+
+    
+
 }
