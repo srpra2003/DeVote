@@ -15,7 +15,7 @@ contract DeVote is Ownable {
     error CandidateWithThisSloganAlreadyAdded(string slogan);
     error InvalidVoterRight(address);
     error InvalidCandidateId();
-    error AlreadyVoted(bytes32 voterRightHAsh);
+    error AlreadyVoted(address voter);
     error NoVotesCastedHenceVotingFailed();
 
     struct Candidate {
@@ -34,6 +34,7 @@ contract DeVote is Ownable {
     bytes32 private immutable merkleRoot;
     uint256 private immutable votingPeriod;
     uint256 private votingStartTime;
+    bool private votingStarted;
     bool private votingFinished;
     uint256 private candidateCount;
     Candidate private winnerCandid;
@@ -42,9 +43,9 @@ contract DeVote is Ownable {
     mapping(bytes32 voterRightHash => bool hasVoted) internal hasVoterVoted;
 
     modifier VotingOpen() {
-        if (votingStartTime == 0) {
+        if (!votingStarted) {
             revert VotingNotStarted();
-        } else if (votingFinished || block.timestamp - votingStartTime >= votingPeriod) {
+        } else if (votingFinished) {
             revert VotingFinished();
         }
         _;
@@ -62,17 +63,20 @@ contract DeVote is Ownable {
         votingPeriod = _votingPeriod;
         candidateCount = 0;
         votingFinished = false;
+        votingStarted = false;
+        votingStartTime = type(uint256).max;
     }
 
     function startVoting() public onlyOwner {
-        if (votingStartTime != 0) {
+        if (votingStarted) {
             revert VotingAlreadyStarted();
         }
         votingStartTime = block.timestamp;
+        votingStarted = true;
     }
 
     function endVoting() public {
-        if (votingStartTime == 0) {
+        if (!votingStarted) {
             revert VotingNotStarted();
         }
         if (block.timestamp - votingStartTime < votingPeriod) {
@@ -97,11 +101,11 @@ contract DeVote is Ownable {
     }
 
     function addCandidate(string memory _cName, string memory _cSlogan) public onlyOwner {
-        if (votingFinished || block.timestamp - votingStartTime >= votingPeriod) {   // reason being that it is possible that voting is finished by time but admin has not yet called the endVoting function
-            revert VotingFinished();
-        }
-        if (votingStartTime != 0) {
+        if (votingStarted) {
             revert VotingAlreadyStarted();
+        }
+        if (votingFinished) {   
+            revert VotingFinished();
         }
 
         bytes32 sloganHash = keccak256(abi.encode(_cSlogan));
@@ -134,11 +138,12 @@ contract DeVote is Ownable {
         if (!MerkleProof.verify(_proof, merkleRoot, leaf)) {
             revert InvalidVoterRight(msg.sender);
         }
-        if (hasVoterVoted[voterRightHash]) {
-            revert AlreadyVoted(voterRightHash);
+        if (hasVoterVoted[leaf]) {
+            revert AlreadyVoted(msg.sender);
         }
 
         candidates[candidIdToVote].voteCount++;
+        hasVoterVoted[leaf] = true;
         emit VoteDeposited(voterRightHash);
         return true;
     }
@@ -161,10 +166,10 @@ contract DeVote is Ownable {
     }
 
     function getVotingStatus() public view returns(int8) {
-        if(votingStartTime == 0) {
+        if(!votingStarted) {
             return -1;   // voting has not started yet
         }
-        else if(votingFinished || block.timestamp - votingStartTime >= votingPeriod) {
+        else if(votingFinished || int256(block.timestamp) - int256(votingStartTime) >= int256(votingPeriod)) {
             return 0;    //voting is finished
         }
         else{

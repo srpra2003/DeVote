@@ -86,6 +86,8 @@ contract TestDeVote is Test {
 
     function testAdminCanNotAddCandidateOnceVotingIsStartedOrEnded() public {
 
+        console.log(deVote.getVotingStatus());
+
         vm.startPrank(admin);
         deVote.addCandidate("NarendraModi","BJP");
         deVote.addCandidate("RahulGandhi","National Congress");
@@ -111,7 +113,7 @@ contract TestDeVote is Test {
         vm.startPrank(admin);
         deVote.endVoting();
 
-        vm.expectRevert(DeVote.VotingFinished.selector);
+        vm.expectRevert(DeVote.VotingAlreadyStarted.selector);
         deVote.addCandidate("Mamta Didi", "TMC");
         vm.stopPrank();
 
@@ -137,6 +139,64 @@ contract TestDeVote is Test {
         vm.stopPrank();
     }
 
-    
+    function testVoterCannotVoteMoreThanOneTime() public {
+
+        vm.startPrank(admin);
+        deVote.addCandidate("NarendraModi","BJP");
+        deVote.addCandidate("RahulGandhi","National Congress");
+        deVote.addCandidate("Arvind Kejrival","AAP");
+
+        deVote.startVoting();
+
+        string memory result = vm.readFile(string.concat(vm.projectRoot(),"/script/target/output.json"));
+        address voter = result.readAddress("[0].inputs[0]");
+        bytes32 voterRightHash = keccak256("650852956851");   // which will be calculated by the user on frontend
+        bytes32[] memory voterProof = result.readBytes32Array("[0].proof");
+        vm.startPrank(voter);
+        deVote.voteCandidate(voterProof,voterRightHash,0); // 0 is a candidate id of narendra modi :)
+        vm.stopPrank();
+
+        //now voter tries to vote again 
+
+        vm.startPrank(voter);
+        vm.expectRevert(abi.encodeWithSelector(DeVote.AlreadyVoted.selector,voter));
+        deVote.voteCandidate(voterProof,voterRightHash,0);
+        vm.stopPrank();
+        
+    }
+
+    function testVoterCannotVoteOnceVotingIsFinished() public {
+
+        vm.startPrank(admin);
+        deVote.addCandidate("NarendraModi","BJP");
+        deVote.addCandidate("RahulGandhi","National Congress");
+        deVote.addCandidate("Arvind Kejrival","AAP");
+        deVote.startVoting();
+        vm.stopPrank();
+
+        string memory result = vm.readFile(string.concat(vm.projectRoot(),"/script/target/output.json"));
+        address voter1 = result.readAddress("[0].inputs[0]");
+        bytes32 voter1RightHash = keccak256("650852956851");   // which will be calculated by the user on frontend
+        bytes32[] memory voter1Proof = result.readBytes32Array("[0].proof");
+        vm.startPrank(voter1);
+        deVote.voteCandidate(voter1Proof,voter1RightHash,0); // 0 is a candidate id of narendra modi :)
+        vm.stopPrank();
+
+        vm.warp(block.timestamp+2 days);
+        vm.roll(block.number+1);
+        console.log(deVote.getVotingStatus());
+
+        vm.startPrank(admin);
+        deVote.endVoting();
+        vm.stopPrank();
+
+        address voter2 = result.readAddress("[1].inputs[0]");
+        bytes32 voter2RightHash = keccak256("902900517015");
+        bytes32[] memory voter2Proof = result.readBytes32Array("[1].proof");
+        vm.startPrank(voter2);
+        vm.expectRevert(DeVote.VotingFinished.selector);
+        deVote.voteCandidate(voter2Proof,voter2RightHash,0);
+        vm.stopPrank();       
+    }
 
 }
