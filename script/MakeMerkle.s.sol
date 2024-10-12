@@ -90,7 +90,8 @@ contract MakeMerkle is Script, ScriptHelper {
                 } else if (compareStrings(types[j], "bytes32")) {
                     bytes32 value = vm.parseBytes32(elements.readString(getValuesByIndex(i, j)));
                     data[j] = bytes32(value);
-                    input[j] = vm.toString(value);
+                    // input[j] = vm.toString(value);
+                    input[j] = "hidden hash";
                 }
             }
             // Create the hash for the merkle tree leaf node

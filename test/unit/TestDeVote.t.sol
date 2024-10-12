@@ -66,7 +66,7 @@ contract TestDeVote is Test {
 
         string memory result = vm.readFile(string.concat(vm.projectRoot(),"/script/target/output.json"));
         address voter = result.readAddress("[0].inputs[0]");
-        bytes32 voterRightHash = result.readBytes32("[0].inputs[1]");
+        bytes32 voterRightHash = keccak256("650852956851");   // which will be calculated by the user on frontend
         bytes32[] memory voterProof = result.readBytes32Array("[0].proof");
         vm.startPrank(voter);
         deVote.voteCandidate(voterProof,voterRightHash,0); // 0 is a candidate id of narendra modi :)
@@ -197,6 +197,17 @@ contract TestDeVote is Test {
         vm.expectRevert(DeVote.VotingFinished.selector);
         deVote.voteCandidate(voter2Proof,voter2RightHash,0);
         vm.stopPrank();       
+    }
+
+    function testNoTwoCandidateCanhaveSameSlogan() public {
+        vm.startPrank(admin);
+        deVote.addCandidate("NarendraModi","BJP");
+        deVote.addCandidate("RahulGandhi","National Congress");
+        deVote.addCandidate("Arvind Kejrival","AAP");
+
+        vm.expectRevert(abi.encodeWithSelector(DeVote.CandidateWithThisSloganAlreadyAdded.selector,"BJP"));
+        deVote.addCandidate("AmitShah","BJP");
+        vm.stopPrank();        
     }
 
 }

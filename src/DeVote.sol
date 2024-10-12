@@ -113,6 +113,7 @@ contract DeVote is Ownable {
         Candidate memory newCandid = Candidate({id: candidateCount, name: _cName, slogan: _cSlogan, voteCount: 0});
 
         candidates.push(newCandid);
+        isCandidateAdded[sloganHash] = true;
         candidateCount++;
 
         emit NewCandidateAdded(newCandid.id, _cName, _cSlogan);
